@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Snake Game</title>
+  <style>
+    /* Add your CSS here */
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+    <div>
+      <input type="text" id="roomIdInput" placeholder="Room ID">
+      <button id="createRoomButton">Create Room</button>
+      <button id="joinRoomButton">Join Room</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
