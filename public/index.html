@@ -2,17 +2,24 @@
 <html>
 <head>
   <title>Snake Game</title>
-  <style>
-    /* Add your CSS here */
-  </style>
+  <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
   <div id="gameContainer">
-    <canvas id="gameCanvas"></canvas>
-    <div>
-      <input type="text" id="roomIdInput" placeholder="Room ID">
+    <canvas id="gameCanvas" width="400" height="400" style="display:none;"></canvas>
+    <div id="roomCreation">
+      <input type="text" id="roomIdInput" placeholder="Enter Room ID">
+      <select id="playerCount">
+        <option value="1">1 Player</option>
+        <option value="2">2 Players</option>
+        <option value="4">4 Players</option>
+      </select>
       <button id="createRoomButton">Create Room</button>
-      <button id="joinRoomButton">Join Room</button>
+    </div>
+    <div id="roomWaiting" style="display:none;">
+      <p id="waitingMessage">Waiting for players...</p>
+      <button id="invitePlayersButton">Invite Players</button>
+      <button id="startGameButton" disabled>Start Game</button>
     </div>
   </div>
 

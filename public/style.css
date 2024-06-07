@@ -1,0 +1,46 @@
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #000;
+    color: #fff;
+    font-family: Arial, sans-serif;
+  }
+  
+  #gameContainer {
+    text-align: center;
+  }
+  
+  #gameCanvas {
+    background-color: #000;
+    border: 1px solid #fff;
+  }
+  
+  input[type="text"], select {
+    padding: 10px;
+    margin: 10px;
+    border: 1px solid #fff;
+    background-color: #333;
+    color: #fff;
+  }
+  
+  button {
+    padding: 10px 20px;
+    margin: 10px;
+    border: 1px solid #fff;
+    background-color: #555;
+    color: #fff;
+    cursor: pointer;
+  }
+  
+  button:disabled {
+    background-color: #333;
+    cursor: not-allowed;
+  }
+  
+  button:hover:not(:disabled) {
+    background-color: #777;
+  }
+  
