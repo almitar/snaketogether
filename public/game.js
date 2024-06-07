@@ -8,6 +8,7 @@ let food;
 let gameLoopInterval;
 let currentDirection = 'right';
 let directionChanged = false;
+let playerIndex = 0;
 
 document.addEventListener('DOMContentLoaded', (event) => {
   if (roomId) {
@@ -47,6 +48,7 @@ socket.on('playerJoined', (playerCount) => {
   updateWaitingMessage();
   if (currentPlayers === targetPlayerCount) {
     document.getElementById('startGameButton').disabled = false;
+    startCountdown();
   }
 });
 
@@ -58,6 +60,7 @@ socket.on('setTargetPlayerCount', (count) => {
 
 socket.on('startGame', (playerDirections) => {
   directions = playerDirections.flat();
+  playerIndex = directions.findIndex(dir => dir.includes(currentDirection));
   document.getElementById('roomWaiting').style.display = 'none';
   document.getElementById('gameCanvas').style.display = 'block';
   setupGame();
@@ -85,6 +88,22 @@ function updateWaitingMessage() {
   console.log(`Target players: ${targetPlayerCount}, Current players: ${currentPlayers}`);
   const playersNeeded = targetPlayerCount - currentPlayers;
   document.getElementById('waitingMessage').textContent = `Waiting for ${playersNeeded} more player(s) to join...`;
+}
+
+function startCountdown() {
+  let countdown = 3;
+  document.getElementById('waitingMessage').textContent = `Game starting in ${countdown}...`;
+  document.getElementById('playerDirection').textContent = `You are responsible for: ${directions[playerIndex]}`;
+
+  const countdownInterval = setInterval(() => {
+    countdown--;
+    document.getElementById('waitingMessage').textContent = `Game starting in ${countdown}...`;
+
+    if (countdown === 0) {
+      clearInterval(countdownInterval);
+      socket.emit('startGame', roomId);
+    }
+  }, 1000);
 }
 
 function setupGame() {
