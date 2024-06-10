@@ -48,23 +48,7 @@ io.on('connection', (socket) => {
   socket.on('startGame', (roomId) => {
     console.log(`Starting game in room ${roomId}`);
     const room = rooms[roomId];
-    if (room.players.length === 1) {
-      room.directions = [
-        ['up', 'down', 'left', 'right']
-      ];
-    } else if (room.players.length === 2) {
-      room.directions = [
-        ['up', 'down'],
-        ['left', 'right']
-      ];
-    } else if (room.players.length === 4) {
-      room.directions = [
-        ['up'],
-        ['right'],
-        ['down'],
-        ['left']
-      ];
-    }
+    room.directions = assignDirections(room.players.length);
     io.to(roomId).emit('startGame', { directions: room.directions, food: room.food });
   });
 
@@ -73,11 +57,8 @@ io.on('connection', (socket) => {
     const room = rooms[data.roomId];
     if (room) {
       room.currentDirection = data.direction;
-      // Assuming you need to update the snake position here on the server
-      updateSnake(room);
-
-      // Broadcast the updated game state to all clients in the room
-      io.to(data.roomId).emit('updateDirection', { direction: data.direction, snake: room.snake, food: room.food });
+      // Broadcast the updated direction to all clients in the room
+      io.to(data.roomId).emit('updateDirection', { direction: data.direction });
     } else {
       console.log(`Room ${data.roomId} not found`);
     }
@@ -119,7 +100,9 @@ function startGameCountdown(roomId) {
 
     if (countdown === 0) {
       clearInterval(countdownInterval);
-      io.to(roomId).emit('startGame', { directions: rooms[roomId].directions, food: rooms[roomId].food });
+      const room = rooms[roomId];
+      room.directions = assignDirections(room.players.length);
+      io.to(roomId).emit('startGame', { directions: room.directions, food: room.food });
     }
   }, 1000);
 }
@@ -129,6 +112,17 @@ function generateFoodPosition() {
     x: Math.floor(Math.random() * 20),
     y: Math.floor(Math.random() * 20)
   };
+}
+
+function assignDirections(playerCount) {
+  if (playerCount === 1) {
+    return [['up', 'down', 'left', 'right']];
+  } else if (playerCount === 2) {
+    return [['up', 'down'], ['left', 'right']];
+  } else if (playerCount === 4) {
+    return [['up'], ['right'], ['down'], ['left']];
+  }
+  return [];
 }
 
 server.listen(3000, () => {

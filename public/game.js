@@ -4,7 +4,7 @@ let directions = [];
 let targetPlayerCount = 0;
 let currentPlayers = 0;
 let roomId = getUrlParameter('roomId') || "";
-let snake;
+let snake = [];
 let food;
 let gameLoopInterval;
 let currentDirection = 'right';
@@ -74,6 +74,9 @@ socket.on('updateCountdown', (countdown) => {
 });
 
 socket.on('startGame', ({ directions: playerDirections, food: initialFood }) => {
+  if (!Array.isArray(playerDirections) || playerDirections.length === 0) {
+    console.error("Directions array is not properly initialized.");
+  }
   directions = playerDirections;
   food = initialFood;
   console.log('Game started with directions: ', directions);
@@ -82,11 +85,11 @@ socket.on('startGame', ({ directions: playerDirections, food: initialFood }) => 
   setupGame();
 });
 
+
 socket.on('updateDirection', (data) => {
   console.log(`Received direction update: ${data.direction}`);
   currentDirection = data.direction;
-  snake = data.snake;
-  food = data.food;
+  directionChanged = true; // Ensure we don't change direction multiple times in one frame
 });
 
 socket.on('foodPositionUpdate', (newFood) => {
@@ -151,8 +154,6 @@ function handleKeydown(event) {
 socket.on('updateDirection', (data) => {
   console.log(`Received direction update: ${data.direction}`);
   currentDirection = data.direction;
-  snake = data.snake;
-  food = data.food;
 });
 
 function spawnFood() {
@@ -163,6 +164,11 @@ function spawnFood() {
 }
 
 function updateGame() {
+  if (!Array.isArray(snake) || snake.length === 0) {
+    console.error("Snake is not initialized properly or is empty.");
+    return;
+  }
+
   const head = { ...snake[0] };
   if (currentDirection === 'right') head.x += 1;
   if (currentDirection === 'left') head.x -= 1;
@@ -195,6 +201,19 @@ function updateGame() {
 
   directionChanged = false;
 }
+
+function setupGame() {
+  snake = [{ x: 10, y: 10 }];
+  currentDirection = 'right';
+
+  document.addEventListener('keydown', handleKeydown);
+
+  if (gameLoopInterval) {
+    clearInterval(gameLoopInterval);
+  }
+  gameLoopInterval = setInterval(gameLoop, 100);
+}
+
 
 function drawGame() {
   const canvas = document.getElementById('gameCanvas');
