@@ -63,7 +63,9 @@ socket.on('setPlayerIndex', (index) => {
 
 socket.on('updateCountdown', (countdown) => {
   console.log(`Countdown: ${countdown}`);
+  const inviteButton = document.getElementById('invitePlayersButton');
   if (countdown > 0) {
+    inviteButton.style.display = 'none';
     document.getElementById('waitingMessage').textContent = `Game starting in ${countdown}...`;
   } else {
     document.getElementById('waitingMessage').textContent = `Game starting...`;
