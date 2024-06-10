@@ -37,18 +37,13 @@ document.getElementById('invitePlayersButton').addEventListener('click', () => {
   });
 });
 
-document.getElementById('startGameButton').addEventListener('click', () => {
-  socket.emit('startGame', roomId);
-});
-
 socket.on('playerJoined', (playerCount) => {
   console.log('Received playerJoined event with playerCount:', playerCount);
   currentPlayers = playerCount;
   console.log(`Player joined. Current players: ${currentPlayers}`);
   updateWaitingMessage();
   if (currentPlayers === targetPlayerCount) {
-    document.getElementById('startGameButton').disabled = false;
-    startCountdown();
+    console.log('Target number of players reached. Starting countdown...');
   }
 });
 
@@ -58,16 +53,38 @@ socket.on('setTargetPlayerCount', (count) => {
   updateWaitingMessage();
 });
 
+socket.on('setPlayerIndex', (index) => {
+  playerIndex = index;
+  console.log(`Player index set to: ${playerIndex}`);
+});
+
+socket.on('updateCountdown', (countdown) => {
+  console.log(`Countdown: ${countdown}`);
+  if (countdown > 0) {
+    document.getElementById('waitingMessage').textContent = `Game starting in ${countdown}...`;
+
+    if (directions[playerIndex]) {
+      document.getElementById('playerDirection').textContent = `You are responsible for: ${directions[playerIndex].join(', ')}`;
+    }
+  } else {
+    document.getElementById('waitingMessage').textContent = `Game starting...`;
+    setupGame();
+  }
+});
+
 socket.on('startGame', (playerDirections) => {
-  directions = playerDirections.flat();
-  playerIndex = directions.findIndex(dir => dir.includes(currentDirection));
+  directions = playerDirections;
+  console.log('Game started with directions: ', directions);
   document.getElementById('roomWaiting').style.display = 'none';
   document.getElementById('gameCanvas').style.display = 'block';
   setupGame();
 });
 
-socket.on('updateDirection', (direction) => {
-  currentDirection = direction;
+socket.on('updateDirection', (data) => {
+  console.log(`Received direction update: ${data.direction}`);
+  currentDirection = data.direction;
+  snake = data.snake;
+  food = data.food;
 });
 
 function getUrlParameter(name) {
@@ -90,22 +107,6 @@ function updateWaitingMessage() {
   document.getElementById('waitingMessage').textContent = `Waiting for ${playersNeeded} more player(s) to join...`;
 }
 
-function startCountdown() {
-  let countdown = 3;
-  document.getElementById('waitingMessage').textContent = `Game starting in ${countdown}...`;
-  document.getElementById('playerDirection').textContent = `You are responsible for: ${directions[playerIndex]}`;
-
-  const countdownInterval = setInterval(() => {
-    countdown--;
-    document.getElementById('waitingMessage').textContent = `Game starting in ${countdown}...`;
-
-    if (countdown === 0) {
-      clearInterval(countdownInterval);
-      socket.emit('startGame', roomId);
-    }
-  }, 1000);
-}
-
 function setupGame() {
   snake = [{ x: 10, y: 10 }];
   spawnFood();
@@ -123,24 +124,31 @@ function handleKeydown(event) {
   const key = event.keyCode;
   if (directionChanged) return; // Prevent changing direction twice in the same frame
 
-  if (directions.includes('up') && key === 38 && currentDirection !== 'down') { // UP arrow
-    currentDirection = 'up';
+  let newDirection;
+  if (directions[playerIndex]?.includes('up') && key === 38 && currentDirection !== 'down') { // UP arrow
+    newDirection = 'up';
+  } else if (directions[playerIndex]?.includes('down') && key === 40 && currentDirection !== 'up') { // DOWN arrow
+    newDirection = 'down';
+  } else if (directions[playerIndex]?.includes('left') && key === 37 && currentDirection !== 'right') { // LEFT arrow
+    newDirection = 'left';
+  } else if (directions[playerIndex]?.includes('right') && key === 39 && currentDirection !== 'left') { // RIGHT arrow
+    newDirection = 'right';
+  }
+
+  if (newDirection) {
+    currentDirection = newDirection;
     directionChanged = true;
-    socket.emit('directionChange', currentDirection);
-  } else if (directions.includes('down') && key === 40 && currentDirection !== 'up') { // DOWN arrow
-    currentDirection = 'down';
-    directionChanged = true;
-    socket.emit('directionChange', currentDirection);
-  } else if (directions.includes('left') && key === 37 && currentDirection !== 'right') { // LEFT arrow
-    currentDirection = 'left';
-    directionChanged = true;
-    socket.emit('directionChange', currentDirection);
-  } else if (directions.includes('right') && key === 39 && currentDirection !== 'left') { // RIGHT arrow
-    currentDirection = 'right';
-    directionChanged = true;
-    socket.emit('directionChange', currentDirection);
+    console.log(`Emitting directionChange: ${currentDirection}`);
+    socket.emit('directionChange', { roomId, direction: currentDirection });
   }
 }
+
+socket.on('updateDirection', (data) => {
+  console.log(`Received direction update: ${data.direction}`);
+  currentDirection = data.direction;
+  snake = data.snake;
+  food = data.food;
+});
 
 function spawnFood() {
   food = {
