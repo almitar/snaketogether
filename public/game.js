@@ -191,15 +191,20 @@ function drawGame() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Draw the snake
-  ctx.fillStyle = 'green';
+  ctx.fillStyle = '#00FF00'; // Retro green color for snake
+  ctx.strokeStyle = '#003300'; // Darker green for the border
+  ctx.lineWidth = 2;
+
   for (let segment of snake) {
     ctx.fillRect(segment.x * 20, segment.y * 20, 20, 20);
+    ctx.strokeRect(segment.x * 20, segment.y * 20, 20, 20);
   }
 
   // Draw the food
-  ctx.fillStyle = 'red';
+  ctx.fillStyle = '#FF0000'; // Retro red color for food
   ctx.fillRect(food.x * 20, food.y * 20, 20, 20);
 }
+
 
 function gameLoop() {
   updateGame();

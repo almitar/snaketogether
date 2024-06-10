@@ -72,7 +72,7 @@ io.on('connection', (socket) => {
     console.log(`Food eaten in room ${data.roomId}`);
     const room = rooms[data.roomId];
     if (room) {
-      room.food = generateFoodPosition(room.snake);
+      room.food = generateFoodPosition(data.snake);
       console.log(`Generated new food position: ${room.food.x}, ${room.food.y}`);
       io.to(data.roomId).emit('foodPositionUpdate', room.food);
     }

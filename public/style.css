@@ -6,7 +6,7 @@ body {
     margin: 0;
     background-color: #000;
     color: #fff;
-    font-family: Arial, sans-serif;
+    font-family: 'Press Start 2P', cursive; /* Retro font */
   }
   
   #gameContainer {
@@ -15,23 +15,26 @@ body {
   
   #gameCanvas {
     background-color: #000;
-    border: 1px solid #fff;
+    border: 2px solid #fff;
+    image-rendering: pixelated; /* Ensure pixelated rendering */
   }
   
   input[type="text"], select {
     padding: 10px;
     margin: 10px;
-    border: 1px solid #fff;
+    border: 2px solid #fff;
     background-color: #333;
     color: #fff;
+    font-family: 'Press Start 2P', cursive; /* Retro font */
   }
   
   button {
     padding: 10px 20px;
     margin: 10px;
-    border: 1px solid #fff;
+    border: 2px solid #fff;
     background-color: #555;
     color: #fff;
+    font-family: 'Press Start 2P', cursive; /* Retro font */
     cursor: pointer;
   }
   
@@ -42,5 +45,15 @@ body {
   
   button:hover:not(:disabled) {
     background-color: #777;
+  }
+  
+  #playerDirections {
+    font-size: 14px;
+    color: #fff;
+    padding-top: 20px;
+  }
+  
+  #waitingMessage, #playerDirection {
+    font-size: 14px;
   }
   
