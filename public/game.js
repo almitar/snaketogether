@@ -1,4 +1,3 @@
-// game.js
 const socket = io();
 let directions = [];
 let targetPlayerCount = 0;
@@ -45,6 +44,7 @@ socket.on('playerJoined', (playerCount) => {
   updateWaitingMessage();
   if (currentPlayers === targetPlayerCount) {
     console.log('Target number of players reached. Starting countdown...');
+    socket.emit('startGame', roomId); // Ensure this event is emitted
   }
 });
 
@@ -63,10 +63,6 @@ socket.on('updateCountdown', (countdown) => {
   console.log(`Countdown: ${countdown}`);
   if (countdown > 0) {
     document.getElementById('waitingMessage').textContent = `Game starting in ${countdown}...`;
-
-    if (directions[playerIndex]) {
-      document.getElementById('playerDirection').textContent = `You are responsible for: ${directions[playerIndex].join(', ')}`;
-    }
   } else {
     document.getElementById('waitingMessage').textContent = `Game starting...`;
     setupGame();
@@ -74,9 +70,6 @@ socket.on('updateCountdown', (countdown) => {
 });
 
 socket.on('startGame', ({ directions: playerDirections, food: initialFood }) => {
-  if (!Array.isArray(playerDirections) || playerDirections.length === 0) {
-    console.error("Directions array is not properly initialized.");
-  }
   directions = playerDirections;
   food = initialFood;
   console.log('Game started with directions: ', directions);
@@ -84,7 +77,6 @@ socket.on('startGame', ({ directions: playerDirections, food: initialFood }) => 
   document.getElementById('gameCanvas').style.display = 'block';
   setupGame();
 });
-
 
 socket.on('updateDirection', (data) => {
   console.log(`Received direction update: ${data.direction}`);
@@ -151,11 +143,6 @@ function handleKeydown(event) {
   }
 }
 
-socket.on('updateDirection', (data) => {
-  console.log(`Received direction update: ${data.direction}`);
-  currentDirection = data.direction;
-});
-
 function spawnFood() {
   food = {
     x: Math.floor(Math.random() * 20),
@@ -201,19 +188,6 @@ function updateGame() {
 
   directionChanged = false;
 }
-
-function setupGame() {
-  snake = [{ x: 10, y: 10 }];
-  currentDirection = 'right';
-
-  document.addEventListener('keydown', handleKeydown);
-
-  if (gameLoopInterval) {
-    clearInterval(gameLoopInterval);
-  }
-  gameLoopInterval = setInterval(gameLoop, 100);
-}
-
 
 function drawGame() {
   const canvas = document.getElementById('gameCanvas');

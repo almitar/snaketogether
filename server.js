@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -23,6 +22,12 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('playerJoined', rooms[roomId].players.length);
     socket.emit('setPlayerIndex', 0);
     socket.emit('setTargetPlayerCount', targetPlayerCount);
+
+    // Check if the room should start immediately
+    if (rooms[roomId].players.length === targetPlayerCount) {
+      console.log(`Single player room or target player count reached. Starting countdown...`);
+      startGameCountdown(roomId);
+    }
   });
 
   socket.on('joinRoom', (roomId) => {
@@ -57,7 +62,6 @@ io.on('connection', (socket) => {
     const room = rooms[data.roomId];
     if (room) {
       room.currentDirection = data.direction;
-      // Broadcast the updated direction to all clients in the room
       io.to(data.roomId).emit('updateDirection', { direction: data.direction });
     } else {
       console.log(`Room ${data.roomId} not found`);
