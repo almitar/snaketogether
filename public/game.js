@@ -113,7 +113,12 @@ function updateWaitingMessage() {
 }
 
 function setupGame() {
-  snake = [{ x: 10, y: 10 }];
+  // Initialize the snake with 3 segments
+  snake = [
+    { x: 10, y: 10 },
+    { x: 9, y: 10 },
+    { x: 8, y: 10 }
+  ];
   currentDirection = 'right';
 
   document.addEventListener('keydown', handleKeydown);
