@@ -50,13 +50,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('startGame', (roomId) => {
-    console.log(`Starting game in room ${roomId}`);
-    const room = rooms[roomId];
-    room.directions = assignDirections(room.players.length);
-    io.to(roomId).emit('startGame', { directions: room.directions, food: room.food });
-  });
-
   socket.on('directionChange', (data) => {
     console.log(`Direction change received in room ${data.roomId}: ${data.direction}`);
     const room = rooms[data.roomId];

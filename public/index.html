@@ -7,8 +7,8 @@
 </head>
 <body>
   <div id="gameContainer">
+    <div id="playerDirections" style="display: none; padding-bottom: 30px;"></div> 
     <canvas id="gameCanvas" width="400" height="400" style="display:none;"></canvas>
-    <div id="playerDirections" style="display: none; padding-top: 20px;"></div> 
     <div id="roomCreation">
       <input type="text" id="roomIdInput" placeholder="Enter Room ID">
       <select id="playerCount">
@@ -20,8 +20,33 @@
     </div>
     <div id="roomWaiting" style="display:none;">
       <p id="waitingMessage">Waiting for players...</p>
-      <p id="playerDirection"></p> <!-- Added for player direction -->
       <button id="invitePlayersButton">Invite Players</button>
+    </div>
+    <div id="controlButtons" style="display: none; padding-top: 30px;">
+      <div class="row">
+        <button id="upButton">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <polygon points="12,2 22,22 2,22" fill="#ececec"/>
+          </svg>
+        </button>
+      </div>
+      <div class="row">
+        <button id="leftButton">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <polygon points="2,12 22,2 22,22" fill="#ececec"/>
+          </svg>
+        </button>
+        <button id="downButton">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <polygon points="12,22 2,2 22,2" fill="#ececec"/>
+          </svg>
+        </button>
+        <button id="rightButton">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <polygon points="22,12 2,22 2,2" fill="#ececec"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 

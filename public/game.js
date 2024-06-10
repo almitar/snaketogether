@@ -14,6 +14,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
   if (roomId) {
     joinRoom(roomId);
   }
+
+  document.getElementById('upButton').addEventListener('click', () => changeDirection('up'));
+  document.getElementById('leftButton').addEventListener('click', () => changeDirection('left'));
+  document.getElementById('downButton').addEventListener('click', () => changeDirection('down'));
+  document.getElementById('rightButton').addEventListener('click', () => changeDirection('right'));
 });
 
 document.getElementById('createRoomButton').addEventListener('click', () => {
@@ -42,10 +47,7 @@ socket.on('playerJoined', (playerCount) => {
   currentPlayers = playerCount;
   console.log(`Player joined. Current players: ${currentPlayers}`);
   updateWaitingMessage();
-  if (currentPlayers === targetPlayerCount) {
-    console.log('Target number of players reached. Starting countdown...');
-    socket.emit('startGame', roomId); // Ensure this event is emitted
-  }
+  // Removed client-side emission of startGame
 });
 
 socket.on('setTargetPlayerCount', (count) => {
@@ -65,7 +67,6 @@ socket.on('updateCountdown', (countdown) => {
     document.getElementById('waitingMessage').textContent = `Game starting in ${countdown}...`;
   } else {
     document.getElementById('waitingMessage').textContent = `Game starting...`;
-    setupGame();
   }
 });
 
@@ -121,6 +122,7 @@ function setupGame() {
   gameLoopInterval = setInterval(gameLoop, 100);
 
   displayPlayerDirections(); // Display player directions
+  document.getElementById('controlButtons').style.display = 'block'; // Show control buttons
 }
 
 function handleKeydown(event) {
@@ -144,6 +146,25 @@ function handleKeydown(event) {
     console.log(`Emitting directionChange: ${currentDirection}`);
     socket.emit('directionChange', { roomId, direction: currentDirection });
   }
+}
+
+function changeDirection(newDirection) {
+  if (directionChanged) return; // Prevent changing direction twice in the same frame
+
+  if (directions[playerIndex]?.includes(newDirection) && isValidDirection(newDirection)) {
+    currentDirection = newDirection;
+    directionChanged = true;
+    console.log(`Emitting directionChange: ${currentDirection}`);
+    socket.emit('directionChange', { roomId, direction: currentDirection });
+  }
+}
+
+function isValidDirection(newDirection) {
+  if (newDirection === 'up' && currentDirection !== 'down') return true;
+  if (newDirection === 'down' && currentDirection !== 'up') return true;
+  if (newDirection === 'left' && currentDirection !== 'right') return true;
+  if (newDirection === 'right' && currentDirection !== 'left') return true;
+  return false;
 }
 
 function updateGame() {
@@ -205,7 +226,6 @@ function drawGame() {
   ctx.fillRect(food.x * 20, food.y * 20, 20, 20);
 }
 
-
 function gameLoop() {
   updateGame();
   drawGame();
@@ -220,6 +240,6 @@ function gameOver() {
 function displayPlayerDirections() {
   const playerDirectionsDiv = document.getElementById('playerDirections');
   const directionsList = directions[playerIndex].join(', ');
-  playerDirectionsDiv.textContent = `You are responsible for: ${directionsList}`;
+  playerDirectionsDiv.textContent = `You control: ${directionsList}`;
   playerDirectionsDiv.style.display = 'block';
 }

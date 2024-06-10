@@ -5,37 +5,49 @@ body {
     height: 100vh;
     margin: 0;
     background-color: #000;
-    color: #fff;
+    color: #ececec;
     font-family: 'Press Start 2P', cursive; /* Retro font */
   }
   
   #gameContainer {
+    display: flex;
+    flex-direction: column;
     text-align: center;
   }
   
   #gameCanvas {
     background-color: #000;
-    border: 2px solid #fff;
-    image-rendering: pixelated; /* Ensure pixelated rendering */
+    border: 6px solid #ececec;
+    image-rendering: pixelated; 
   }
   
   input[type="text"], select {
     padding: 10px;
     margin: 10px;
-    border: 2px solid #fff;
+    border: 2px solid #ececec;
     background-color: #333;
-    color: #fff;
-    font-family: 'Press Start 2P', cursive; /* Retro font */
+    color: #ececec;
+    font-family: 'Press Start 2P', cursive; 
+  }
+  
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: #333 url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMHB4IiBoZWlnaHQ9IjEwbHgiIHZpZXdCb3g9IjAgMCAxMCAxMCI+PHBhdGggZmlsbD0iI2VjZWNlYyIgZD0iTTUgNi43NUw4Ljg5IDIuNkgxLjExTDUgNi43NXoiLz48L3N2Zz4=') no-repeat right 10px center; /* Custom dropdown arrow */
+    padding-right: 30px; 
+    height: 40px; 
   }
   
   button {
     padding: 10px 20px;
     margin: 10px;
-    border: 2px solid #fff;
+    border: 2px solid #ececec;
     background-color: #555;
-    color: #fff;
-    font-family: 'Press Start 2P', cursive; /* Retro font */
+    color: #ececec;
+    font-family: 'Press Start 2P', cursive; 
     cursor: pointer;
+    height: 40px;
   }
   
   button:disabled {
@@ -49,11 +61,48 @@ body {
   
   #playerDirections {
     font-size: 14px;
-    color: #fff;
+    color: #ececec;
     padding-top: 20px;
   }
   
   #waitingMessage, #playerDirection {
     font-size: 14px;
   }
+  
+  #controlButtons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding-top: 20px;
+  }
+  
+  #controlButtons .row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  
+  #controlButtons button {
+    width: 60px;
+    height: 60px;
+    background-color: #555;
+    border: 2px solid #ececec;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: 'Press Start 2P', cursive; /* Retro font */
+  }
+  
+  #controlButtons button:hover {
+    background-color: #777;
+  }
+  
+  #controlButtons svg {
+    width: 100%;
+    height: 100%;
+    fill: #ececec;
+  }
+  
   
