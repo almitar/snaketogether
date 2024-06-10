@@ -85,6 +85,7 @@ socket.on('updateDirection', (data) => {
 });
 
 socket.on('foodPositionUpdate', (newFood) => {
+  console.log(`New food position received: ${newFood.x}, ${newFood.y}`);
   food = newFood;
 });
 
@@ -143,13 +144,6 @@ function handleKeydown(event) {
   }
 }
 
-function spawnFood() {
-  food = {
-    x: Math.floor(Math.random() * 20),
-    y: Math.floor(Math.random() * 20)
-  };
-}
-
 function updateGame() {
   if (!Array.isArray(snake) || snake.length === 0) {
     console.error("Snake is not initialized properly or is empty.");
@@ -178,9 +172,9 @@ function updateGame() {
 
   // Check if the snake eats the food
   if (head.x === food.x && head.y === food.y) {
+    console.log("Food eaten");
     snake.unshift(head); // Grow the snake
-    spawnFood();
-    socket.emit('foodEaten', { roomId, food });
+    socket.emit('foodEaten', { roomId, snake });
   } else {
     snake.unshift(head);
     snake.pop();

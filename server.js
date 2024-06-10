@@ -15,7 +15,7 @@ io.on('connection', (socket) => {
 
   socket.on('createRoom', ({ roomId, targetPlayerCount }) => {
     console.log(`Creating room with ID: ${roomId} for ${targetPlayerCount} players`);
-    rooms[roomId] = { players: [], directions: [], targetPlayerCount, food: generateFoodPosition() };
+    rooms[roomId] = { players: [], directions: [], targetPlayerCount, food: generateFoodPosition([]) };
     socket.join(roomId);
     rooms[roomId].players.push({ id: socket.id, index: 0 });
     console.log(`Room created with player count for room ${roomId}: ${rooms[roomId].players.length}`);
@@ -72,11 +72,12 @@ io.on('connection', (socket) => {
     console.log(`Food eaten in room ${data.roomId}`);
     const room = rooms[data.roomId];
     if (room) {
-      room.food = generateFoodPosition();
+      room.food = generateFoodPosition(room.snake);
+      console.log(`Generated new food position: ${room.food.x}, ${room.food.y}`);
       io.to(data.roomId).emit('foodPositionUpdate', room.food);
     }
   });
-
+  
   socket.on('disconnect', () => {
     console.log('A user disconnected');
     for (let roomId in rooms) {
@@ -111,11 +112,20 @@ function startGameCountdown(roomId) {
   }, 1000);
 }
 
-function generateFoodPosition() {
-  return {
-    x: Math.floor(Math.random() * 20),
-    y: Math.floor(Math.random() * 20)
-  };
+function generateFoodPosition(snake) {
+  let food;
+  let validPosition = false;
+  
+  while (!validPosition) {
+    food = {
+      x: Math.floor(Math.random() * 20),
+      y: Math.floor(Math.random() * 20)
+    };
+
+    validPosition = !snake.some(segment => segment.x === food.x && segment.y === food.y);
+  }
+  
+  return food;
 }
 
 function assignDirections(playerCount) {
