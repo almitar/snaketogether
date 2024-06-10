@@ -1,3 +1,4 @@
+// game.js
 const socket = io();
 let directions = [];
 let targetPlayerCount = 0;
@@ -72,8 +73,9 @@ socket.on('updateCountdown', (countdown) => {
   }
 });
 
-socket.on('startGame', (playerDirections) => {
+socket.on('startGame', ({ directions: playerDirections, food: initialFood }) => {
   directions = playerDirections;
+  food = initialFood;
   console.log('Game started with directions: ', directions);
   document.getElementById('roomWaiting').style.display = 'none';
   document.getElementById('gameCanvas').style.display = 'block';
@@ -85,6 +87,10 @@ socket.on('updateDirection', (data) => {
   currentDirection = data.direction;
   snake = data.snake;
   food = data.food;
+});
+
+socket.on('foodPositionUpdate', (newFood) => {
+  food = newFood;
 });
 
 function getUrlParameter(name) {
@@ -109,7 +115,6 @@ function updateWaitingMessage() {
 
 function setupGame() {
   snake = [{ x: 10, y: 10 }];
-  spawnFood();
   currentDirection = 'right';
 
   document.addEventListener('keydown', handleKeydown);
@@ -182,6 +187,7 @@ function updateGame() {
   if (head.x === food.x && head.y === food.y) {
     snake.unshift(head); // Grow the snake
     spawnFood();
+    socket.emit('foodEaten', { roomId, food });
   } else {
     snake.unshift(head);
     snake.pop();

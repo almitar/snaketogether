@@ -16,7 +16,7 @@ io.on('connection', (socket) => {
 
   socket.on('createRoom', ({ roomId, targetPlayerCount }) => {
     console.log(`Creating room with ID: ${roomId} for ${targetPlayerCount} players`);
-    rooms[roomId] = { players: [], directions: [], targetPlayerCount };
+    rooms[roomId] = { players: [], directions: [], targetPlayerCount, food: generateFoodPosition() };
     socket.join(roomId);
     rooms[roomId].players.push({ id: socket.id, index: 0 });
     console.log(`Room created with player count for room ${roomId}: ${rooms[roomId].players.length}`);
@@ -65,7 +65,7 @@ io.on('connection', (socket) => {
         ['left']
       ];
     }
-    io.to(roomId).emit('startGame', room.directions);
+    io.to(roomId).emit('startGame', { directions: room.directions, food: room.food });
   });
 
   socket.on('directionChange', (data) => {
@@ -80,6 +80,15 @@ io.on('connection', (socket) => {
       io.to(data.roomId).emit('updateDirection', { direction: data.direction, snake: room.snake, food: room.food });
     } else {
       console.log(`Room ${data.roomId} not found`);
+    }
+  });
+
+  socket.on('foodEaten', (data) => {
+    console.log(`Food eaten in room ${data.roomId}`);
+    const room = rooms[data.roomId];
+    if (room) {
+      room.food = generateFoodPosition();
+      io.to(data.roomId).emit('foodPositionUpdate', room.food);
     }
   });
 
@@ -110,9 +119,16 @@ function startGameCountdown(roomId) {
 
     if (countdown === 0) {
       clearInterval(countdownInterval);
-      io.to(roomId).emit('startGame');
+      io.to(roomId).emit('startGame', { directions: rooms[roomId].directions, food: rooms[roomId].food });
     }
   }, 1000);
+}
+
+function generateFoodPosition() {
+  return {
+    x: Math.floor(Math.random() * 20),
+    y: Math.floor(Math.random() * 20)
+  };
 }
 
 server.listen(3000, () => {
