@@ -15,10 +15,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
     joinRoom(roomId);
   }
 
-  document.getElementById('upButton').addEventListener('click', () => changeDirection('up'));
-  document.getElementById('leftButton').addEventListener('click', () => changeDirection('left'));
-  document.getElementById('downButton').addEventListener('click', () => changeDirection('down'));
-  document.getElementById('rightButton').addEventListener('click', () => changeDirection('right'));
+  document.getElementById('upButton').addEventListener('click', () => changeDirection('up', 'upButton'));
+  document.getElementById('leftButton').addEventListener('click', () => changeDirection('left', 'leftButton'));
+  document.getElementById('downButton').addEventListener('click', () => changeDirection('down', 'downButton'));
+  document.getElementById('rightButton').addEventListener('click', () => changeDirection('right', 'rightButton'));
 });
 
 document.getElementById('createRoomButton').addEventListener('click', () => {
@@ -58,7 +58,7 @@ socket.on('setTargetPlayerCount', (count) => {
 
 socket.on('setPlayerIndex', (index) => {
   playerIndex = index;
-  console.log(`Player index set to: ${playerIndex}`);
+  console.log(`Player index set to: ${index}`);
 });
 
 socket.on('updateCountdown', (countdown) => {
@@ -140,22 +140,24 @@ function handleKeydown(event) {
     newDirection = 'right';
   }
 
-  if (newDirection) {
+  if (newDirection && newDirection !== currentDirection) {
     currentDirection = newDirection;
     directionChanged = true;
     console.log(`Emitting directionChange: ${currentDirection}`);
     socket.emit('directionChange', { roomId, direction: currentDirection });
+    flashButton(newDirection);
   }
 }
 
-function changeDirection(newDirection) {
-  if (directionChanged) return; // Prevent changing direction twice in the same frame
+function changeDirection(newDirection, buttonId) {
+  if (directionChanged || newDirection === currentDirection) return; // Prevent changing direction twice in the same frame
 
   if (directions[playerIndex]?.includes(newDirection) && isValidDirection(newDirection)) {
     currentDirection = newDirection;
     directionChanged = true;
     console.log(`Emitting directionChange: ${currentDirection}`);
     socket.emit('directionChange', { roomId, direction: currentDirection });
+    flashButton(buttonId);
   }
 }
 
@@ -165,6 +167,20 @@ function isValidDirection(newDirection) {
   if (newDirection === 'left' && currentDirection !== 'right') return true;
   if (newDirection === 'right' && currentDirection !== 'left') return true;
   return false;
+}
+
+function flashButton(direction) {
+  let buttonId;
+  if (direction === 'up') buttonId = 'upButton';
+  else if (direction === 'down') buttonId = 'downButton';
+  else if (direction === 'left') buttonId = 'leftButton';
+  else if (direction === 'right') buttonId = 'rightButton';
+
+  const button = document.getElementById(buttonId);
+  button.classList.add('active');
+  setTimeout(() => {
+    button.classList.remove('active');
+  }, 200);
 }
 
 function updateGame() {
