@@ -119,6 +119,8 @@ function setupGame() {
     clearInterval(gameLoopInterval);
   }
   gameLoopInterval = setInterval(gameLoop, 100);
+
+  displayPlayerDirections(); // Display player directions
 }
 
 function handleKeydown(event) {
@@ -208,4 +210,11 @@ function gameOver() {
   clearInterval(gameLoopInterval);
   alert('Game Over! Your score is ' + (snake.length - 1));
   // Optionally, you could restart the game or redirect to the home screen
+}
+
+function displayPlayerDirections() {
+  const playerDirectionsDiv = document.getElementById('playerDirections');
+  const directionsList = directions[playerIndex].join(', ');
+  playerDirectionsDiv.textContent = `You are responsible for: ${directionsList}`;
+  playerDirectionsDiv.style.display = 'block';
 }
