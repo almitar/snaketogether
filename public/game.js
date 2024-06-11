@@ -49,7 +49,6 @@ document.getElementById('createRoomButton').addEventListener('click', () => {
   updateWaitingMessage();
 });
 
-
 document.getElementById('joinRoomButton').addEventListener('click', () => {
   username = document.getElementById('usernameInputJoin').value;
   if (!username) {
@@ -69,20 +68,35 @@ document.getElementById('joinRoomButton').addEventListener('click', () => {
 });
 
 document.getElementById('invitePlayersButton').addEventListener('click', () => {
-  const inviteLink = `${window.location.origin}/${roomId}`;
+  const roomId = new URLSearchParams(window.location.search).get('roomId'); // Extract roomId from URL
+  const inviteLink = `${window.location.origin}?roomId=${roomId}`;
+
+  console.log('Invite link:', inviteLink); // Debugging log
+
   navigator.clipboard.writeText(inviteLink).then(() => {
     const inviteMessage = document.getElementById('inviteMessage');
-    inviteMessage.textContent = 'Link copied!';
+    inviteMessage.textContent = `Link copied!`;
     inviteMessage.style.visibility = 'visible';
 
     // Hide the message after 3 seconds
     setTimeout(() => {
       inviteMessage.style.visibility = 'hidden';
     }, 2000);
+  }).catch(err => {
+    console.error('Could not copy text: ', err); // Error handling for debugging
   });
 });
 
+document.getElementById('invitePlayersModalButton').addEventListener('click', () => {
+  const roomId = new URLSearchParams(window.location.search).get('roomId'); // Extract roomId from URL
+  const inviteLink = `${window.location.origin}?roomId=${roomId}`;
 
+  navigator.clipboard.writeText(inviteLink).then(() => {
+    alert('Invite link copied to clipboard!');
+  }).catch(err => {
+    console.error('Could not copy text: ', err);
+  });
+});
 
 socket.on('playerJoined', (playerCount) => {
   console.log('Received playerJoined event with playerCount:', playerCount);
@@ -96,8 +110,6 @@ socket.on('playerJoined', (playerCount) => {
   }
 });
 
-
-
 socket.on('setPlayerIndex', (index) => {
   playerIndex = index;
   console.log(`Player index set to: ${index}`);
@@ -106,7 +118,6 @@ socket.on('setPlayerIndex', (index) => {
     displayPlayerDirections();
   }
 });
-
 
 socket.on('setTargetPlayerCount', (count) => {
   targetPlayerCount = count;
@@ -130,7 +141,6 @@ socket.on('updateCountdown', (countdown) => {
   }
 });
 
-
 socket.on('startGame', ({ directions: playerDirections, food: initialFood }) => {
   directions = playerDirections;
   food = initialFood;
@@ -141,7 +151,6 @@ socket.on('startGame', ({ directions: playerDirections, food: initialFood }) => 
   setupGame();
 });
 
-
 socket.on('updateDirections', (updatedDirections) => {
   directions = updatedDirections;
   console.log('Updated directions received: ', directions);
@@ -150,8 +159,6 @@ socket.on('updateDirections', (updatedDirections) => {
     displayPlayerDirections();
   }
 });
-
-
 
 socket.on('updateDirection', (data) => {
   console.log(`Received direction update: ${data.direction}`);
@@ -164,6 +171,79 @@ socket.on('foodPositionUpdate', (newFood) => {
   food = newFood;
 });
 
+// Event listener for player disconnection
+socket.on('playerDisconnected', ({ username, remainingPlayers, targetPlayerCount }) => {
+  console.log(`Player ${username} disconnected. Remaining players: ${remainingPlayers}`);
+  pauseGame();
+  const playersNeeded = targetPlayerCount - remainingPlayers;
+  showModal(`Player ${username} disconnected. Waiting for ${playersNeeded} player(s) to join.`, 30);
+});
+
+// Event listener for player reconnection
+socket.on('playerReconnected', ({ username, remainingPlayers, targetPlayerCount }) => {
+  console.log(`Player ${username} reconnected. Remaining players: ${remainingPlayers}`);
+  const playersNeeded = targetPlayerCount - remainingPlayers;
+  updateModal(`Player ${username} reconnected. Waiting for ${playersNeeded} player(s) to join.`, 30);
+  if (remainingPlayers === targetPlayerCount) {
+    closeModal();
+    resumeGame();
+  }
+});
+
+// Pause game function
+function pauseGame() {
+  clearInterval(gameLoopInterval);
+}
+
+// Resume game function
+function resumeGame() {
+  gameLoopInterval = setInterval(gameLoop, 100);
+}
+
+// Show modal function
+function showModal(message, countdown) {
+  const modal = document.getElementById('modal');
+  const messageElement = document.getElementById('modalMessage');
+  const countdownElement = document.getElementById('countdown');
+  const inviteButton = document.getElementById('invitePlayersModalButton');
+
+  messageElement.textContent = message;
+  countdownElement.textContent = `Countdown: ${countdown}s`;
+  inviteButton.style.display = 'block';
+
+  modal.style.display = 'block';
+
+  const countdownInterval = setInterval(() => {
+    countdown--;
+    countdownElement.textContent = `Countdown: ${countdown}s`;
+    if (countdown <= 0) {
+      clearInterval(countdownInterval);
+      gameOver();
+    }
+  }, 1000);
+}
+
+// Update modal function
+function updateModal(message, countdown) {
+  const messageElement = document.getElementById('modalMessage');
+  const countdownElement = document.getElementById('countdown');
+
+  messageElement.textContent = message;
+  countdownElement.textContent = `Countdown: ${countdown}s`;
+}
+
+// Close modal function
+function closeModal() {
+  const modal = document.getElementById('modal');
+  modal.style.display = 'none';
+}
+
+// Game over function
+function gameOver() {
+  clearInterval(gameLoopInterval);
+  alert('Game Over! Your score is ' + (snake.length - 1));
+  // Optionally, you could restart the game or redirect to the home screen
+}
 
 function getUrlParameter(name) {
   name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');

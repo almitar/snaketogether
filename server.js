@@ -11,7 +11,7 @@ app.use(express.static('public'));
 let rooms = {};
 
 io.on('connection', (socket) => {
-  console.log('A user connected');
+  console.log('A user connected: ', socket.id);
   
   socket.on('createRoom', ({ roomId, targetPlayerCount, username }) => {
     console.log(`Creating room with ID: ${roomId} for ${targetPlayerCount} players`);
@@ -19,9 +19,9 @@ io.on('connection', (socket) => {
     socket.join(roomId);
     io.to(roomId).emit('playerJoined', rooms[roomId].players.length);
     socket.emit('setPlayerIndex', 0);
-    socket.emit('setTargetPlayerCount', targetPlayerCount); // Emit target player count
-    socket.emit('updateDirections', rooms[roomId].directions); // Emit directions immediately
-    console.log(`Directions for room ${roomId}:`, rooms[roomId].directions); // Log directions for debugging
+    socket.emit('setTargetPlayerCount', targetPlayerCount);
+    socket.emit('updateDirections', rooms[roomId].directions);
+    console.log(`Directions for room ${roomId}:`, rooms[roomId].directions);
   
     if (rooms[roomId].players.length === targetPlayerCount) {
       console.log(`Single player room or target player count reached. Starting countdown...`);
@@ -36,14 +36,13 @@ io.on('connection', (socket) => {
       rooms[roomId].players.push({ id: socket.id, username, index: playerIndex });
       socket.join(roomId);
       io.to(roomId).emit('playerJoined', rooms[roomId].players.length);
-      socket.emit('setPlayerIndex', playerIndex); // Assign and emit player index immediately
-      socket.emit('setTargetPlayerCount', rooms[roomId].targetPlayerCount); // Emit target player count
+      socket.emit('setPlayerIndex', playerIndex);
+      socket.emit('setTargetPlayerCount', rooms[roomId].targetPlayerCount);
       
-      // Emit directions after a short delay
       setTimeout(() => {
-        socket.emit('updateDirections', rooms[roomId].directions); // Emit directions
-        console.log(`Directions for room ${roomId}:`, rooms[roomId].directions); // Log directions for debugging
-      }, 100); // 100 milliseconds delay
+        socket.emit('updateDirections', rooms[roomId].directions);
+        console.log(`Directions for room ${roomId}:`, rooms[roomId].directions);
+      }, 100);
       
       if (rooms[roomId].players.length === rooms[roomId].targetPlayerCount) {
         console.log(`Target number of players reached in room ${roomId}. Starting countdown...`);
@@ -53,8 +52,6 @@ io.on('connection', (socket) => {
       socket.emit('roomFull');
     }
   });
-  
-  
   
   socket.on('directionChange', (data) => {
     console.log(`Direction change received in room ${data.roomId}: ${data.direction}`);
@@ -77,17 +74,42 @@ io.on('connection', (socket) => {
     }
   });
   
-
   socket.on('disconnect', () => {
-    console.log('A user disconnected');
+    console.log('A user disconnected: ', socket.id);
     for (let roomId in rooms) {
       let room = rooms[roomId];
-      room.players = room.players.filter((player) => player.id !== socket.id);
-      if (room.players.length === 0) {
-        delete rooms[roomId];
-      } else {
-        console.log(`Player count after disconnect for room ${roomId}: ${room.players.length}`);
-        io.to(roomId).emit('playerJoined', room.players.length);
+      const disconnectedPlayer = room.players.find(player => player.id === socket.id);
+      if (disconnectedPlayer) {
+        room.players = room.players.filter(player => player.id !== socket.id);
+        if (room.players.length === 0) {
+          delete rooms[roomId];
+        } else {
+          io.to(roomId).emit('playerDisconnected', {
+            username: disconnectedPlayer.username,
+            remainingPlayers: room.players.length,
+            targetPlayerCount: room.targetPlayerCount
+          });
+          console.log(`Player count after disconnect for room ${roomId}: ${room.players.length}`);
+        }
+      }
+    }
+  });
+
+  socket.on('playerReconnected', ({ roomId, username }) => {
+    console.log(`Player ${username} connected to room ${roomId}`);
+    const room = rooms[roomId];
+    if (room) {
+      const playerIndex = room.players.length;
+      room.players.push({ id: socket.id, username, index: playerIndex });
+      socket.join(roomId);
+      io.to(roomId).emit('playerReconnected', {
+        username,
+        remainingPlayers: room.players.length,
+        targetPlayerCount: room.targetPlayerCount
+      });
+
+      if (room.players.length === room.targetPlayerCount) {
+        io.to(roomId).emit('resumeGame');
       }
     }
   });
@@ -126,7 +148,6 @@ function generateFoodPosition(snake) {
 
   return food;
 }
-
 
 function assignDirections(playerCount) {
   if (playerCount === 1) {
