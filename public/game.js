@@ -25,25 +25,30 @@ document.addEventListener('DOMContentLoaded', (event) => {
 });
 
 document.getElementById('createRoomButton').addEventListener('click', () => {
-  roomId = document.getElementById('roomIdInput').value;
+  const roomIdInput = document.getElementById('roomIdInput').value;
   username = document.getElementById('usernameInputCreate').value;
   targetPlayerCount = parseInt(document.getElementById('playerCount').value);
 
-  if (!username || !roomId) {
+  if (!username || !roomIdInput) {
     alert('Please enter both a username and room ID.');
     return;
   }
 
+  // Generate a unique identifier for the room
+  const uniqueId = Date.now();
+  roomId = `${uniqueId}-${roomIdInput}`;
+
   console.log(`Creating room with ID: ${roomId} for ${targetPlayerCount} players`);
   socket.emit('createRoom', { roomId, targetPlayerCount, username });
 
-  // Update the URL to include the room ID
+  // Update the URL to include the unique room ID
   window.history.pushState({}, '', `?roomId=${roomId}`);
 
   document.getElementById('roomCreation').style.display = 'none';
   document.getElementById('roomWaiting').style.display = 'block';
   updateWaitingMessage();
 });
+
 
 document.getElementById('joinRoomButton').addEventListener('click', () => {
   username = document.getElementById('usernameInputJoin').value;
@@ -64,11 +69,20 @@ document.getElementById('joinRoomButton').addEventListener('click', () => {
 });
 
 document.getElementById('invitePlayersButton').addEventListener('click', () => {
-  const inviteLink = `${window.location.origin}?roomId=${roomId}`;
+  const inviteLink = `${window.location.origin}/${roomId}`;
   navigator.clipboard.writeText(inviteLink).then(() => {
-    alert('Invitation link copied to clipboard: ' + inviteLink);
+    const inviteMessage = document.getElementById('inviteMessage');
+    inviteMessage.textContent = 'Link copied!';
+    inviteMessage.style.visibility = 'visible';
+
+    // Hide the message after 3 seconds
+    setTimeout(() => {
+      inviteMessage.style.visibility = 'hidden';
+    }, 2000);
   });
 });
+
+
 
 socket.on('playerJoined', (playerCount) => {
   console.log('Received playerJoined event with playerCount:', playerCount);
