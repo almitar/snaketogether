@@ -12,35 +12,39 @@ let rooms = {};
 
 io.on('connection', (socket) => {
   console.log('A user connected');
-
-  socket.on('createRoom', ({ roomId, targetPlayerCount }) => {
+  
+  socket.on('createRoom', ({ roomId, targetPlayerCount, username }) => {
     console.log(`Creating room with ID: ${roomId} for ${targetPlayerCount} players`);
-    rooms[roomId] = { players: [], directions: [], targetPlayerCount, food: generateFoodPosition([]) };
+    rooms[roomId] = { players: [{ id: socket.id, username, index: 0 }], directions: assignDirections(targetPlayerCount), targetPlayerCount, food: generateFoodPosition([]) };
     socket.join(roomId);
-    rooms[roomId].players.push({ id: socket.id, index: 0 });
-    console.log(`Room created with player count for room ${roomId}: ${rooms[roomId].players.length}`);
     io.to(roomId).emit('playerJoined', rooms[roomId].players.length);
     socket.emit('setPlayerIndex', 0);
-    socket.emit('setTargetPlayerCount', targetPlayerCount);
-
-    // Check if the room should start immediately
+    socket.emit('setTargetPlayerCount', targetPlayerCount); // Emit target player count
+    socket.emit('updateDirections', rooms[roomId].directions); // Emit directions immediately
+    console.log(`Directions for room ${roomId}:`, rooms[roomId].directions); // Log directions for debugging
+  
     if (rooms[roomId].players.length === targetPlayerCount) {
       console.log(`Single player room or target player count reached. Starting countdown...`);
       startGameCountdown(roomId);
     }
   });
-
-  socket.on('joinRoom', (roomId) => {
+  
+  socket.on('joinRoom', ({ roomId, username }) => {
     console.log(`Joining room with ID: ${roomId}`);
     if (rooms[roomId] && rooms[roomId].players.length < rooms[roomId].targetPlayerCount) {
       const playerIndex = rooms[roomId].players.length;
-      rooms[roomId].players.push({ id: socket.id, index: playerIndex });
+      rooms[roomId].players.push({ id: socket.id, username, index: playerIndex });
       socket.join(roomId);
-      console.log(`Player count after joining for room ${roomId}: ${rooms[roomId].players.length}`);
       io.to(roomId).emit('playerJoined', rooms[roomId].players.length);
-      socket.emit('setPlayerIndex', playerIndex);
-      socket.emit('setTargetPlayerCount', rooms[roomId].targetPlayerCount);
-
+      socket.emit('setPlayerIndex', playerIndex); // Assign and emit player index immediately
+      socket.emit('setTargetPlayerCount', rooms[roomId].targetPlayerCount); // Emit target player count
+      
+      // Emit directions after a short delay
+      setTimeout(() => {
+        socket.emit('updateDirections', rooms[roomId].directions); // Emit directions
+        console.log(`Directions for room ${roomId}:`, rooms[roomId].directions); // Log directions for debugging
+      }, 100); // 100 milliseconds delay
+      
       if (rooms[roomId].players.length === rooms[roomId].targetPlayerCount) {
         console.log(`Target number of players reached in room ${roomId}. Starting countdown...`);
         startGameCountdown(roomId);
@@ -49,7 +53,9 @@ io.on('connection', (socket) => {
       socket.emit('roomFull');
     }
   });
-
+  
+  
+  
   socket.on('directionChange', (data) => {
     console.log(`Direction change received in room ${data.roomId}: ${data.direction}`);
     const room = rooms[data.roomId];
@@ -71,6 +77,7 @@ io.on('connection', (socket) => {
     }
   });
   
+
   socket.on('disconnect', () => {
     console.log('A user disconnected');
     for (let roomId in rooms) {
@@ -87,6 +94,7 @@ io.on('connection', (socket) => {
 });
 
 function startGameCountdown(roomId) {
+  const room = rooms[roomId];
   let countdown = 3;
   io.to(roomId).emit('updateCountdown', countdown);
   console.log(`Countdown started for room ${roomId} with countdown ${countdown}`);
@@ -98,8 +106,6 @@ function startGameCountdown(roomId) {
 
     if (countdown === 0) {
       clearInterval(countdownInterval);
-      const room = rooms[roomId];
-      room.directions = assignDirections(room.players.length);
       io.to(roomId).emit('startGame', { directions: room.directions, food: room.food });
     }
   }, 1000);
@@ -108,7 +114,7 @@ function startGameCountdown(roomId) {
 function generateFoodPosition(snake) {
   let food;
   let validPosition = false;
-  
+
   while (!validPosition) {
     food = {
       x: Math.floor(Math.random() * 20),
@@ -117,9 +123,10 @@ function generateFoodPosition(snake) {
 
     validPosition = !snake.some(segment => segment.x === food.x && segment.y === food.y);
   }
-  
+
   return food;
 }
+
 
 function assignDirections(playerCount) {
   if (playerCount === 1) {

@@ -18,7 +18,6 @@ body {
   #gameCanvas {
     background-color: #000;
     border: 6px solid #ececec;
-    image-rendering: pixelated; 
   }
   
   input[type="text"], select {

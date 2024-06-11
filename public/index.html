@@ -7,9 +7,15 @@
 </head>
 <body>
   <div id="gameContainer">
-    <div id="playerDirections" style="display: none; padding-bottom: 30px;"></div> 
     <canvas id="gameCanvas" width="400" height="400" style="display:none;"></canvas>
-    <div id="roomCreation">
+    
+    <div id="initialJoin" style="display:none;">
+      <input type="text" id="usernameInputJoin" placeholder="Enter Username">
+      <button id="joinRoomButton">Join Room</button>
+    </div>
+    
+    <div id="roomCreation" style="display:none;">
+      <input type="text" id="usernameInputCreate" placeholder="Enter Username">
       <input type="text" id="roomIdInput" placeholder="Enter Room ID">
       <select id="playerCount">
         <option value="1">1 Player</option>
@@ -18,10 +24,13 @@
       </select>
       <button id="createRoomButton">Create Room</button>
     </div>
+    
     <div id="roomWaiting" style="display:none;">
-      <p id="waitingMessage">Waiting for players...</p>
+      <div id="playerDirections" style="display: none; padding-bottom: 30px;"></div> 
+      <p id="waitingMessage" style="padding-bottom: 30px">Waiting for players...</p>
       <button id="invitePlayersButton">Invite Players</button>
     </div>
+    
     <div id="controlButtons" style="display: none; padding-top: 30px;">
       <div class="row">
         <button id="upButton">

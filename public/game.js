@@ -3,6 +3,7 @@ let directions = [];
 let targetPlayerCount = 0;
 let currentPlayers = 0;
 let roomId = getUrlParameter('roomId') || "";
+let username = "";
 let snake = [];
 let food;
 let gameLoopInterval;
@@ -12,7 +13,9 @@ let playerIndex = 0;
 
 document.addEventListener('DOMContentLoaded', (event) => {
   if (roomId) {
-    joinRoom(roomId);
+    document.getElementById('initialJoin').style.display = 'block';
+  } else {
+    document.getElementById('roomCreation').style.display = 'block';
   }
 
   document.getElementById('upButton').addEventListener('click', () => changeDirection('up', 'upButton'));
@@ -23,9 +26,16 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
 document.getElementById('createRoomButton').addEventListener('click', () => {
   roomId = document.getElementById('roomIdInput').value;
+  username = document.getElementById('usernameInputCreate').value;
   targetPlayerCount = parseInt(document.getElementById('playerCount').value);
+
+  if (!username || !roomId) {
+    alert('Please enter both a username and room ID.');
+    return;
+  }
+
   console.log(`Creating room with ID: ${roomId} for ${targetPlayerCount} players`);
-  socket.emit('createRoom', { roomId, targetPlayerCount });
+  socket.emit('createRoom', { roomId, targetPlayerCount, username });
 
   // Update the URL to include the room ID
   window.history.pushState({}, '', `?roomId=${roomId}`);
@@ -33,6 +43,24 @@ document.getElementById('createRoomButton').addEventListener('click', () => {
   document.getElementById('roomCreation').style.display = 'none';
   document.getElementById('roomWaiting').style.display = 'block';
   updateWaitingMessage();
+});
+
+document.getElementById('joinRoomButton').addEventListener('click', () => {
+  username = document.getElementById('usernameInputJoin').value;
+  if (!username) {
+    alert('Please enter a username.');
+    return;
+  }
+  console.log(`Joining room with ID: ${roomId}`);
+  socket.emit('joinRoom', { roomId, username });
+
+  document.getElementById('initialJoin').style.display = 'none';
+  // Avoid displaying the waiting message if the game is about to start
+  if (currentPlayers + 1 === targetPlayerCount) {
+    document.getElementById('waitingMessage').style.display = 'none';
+  }
+  document.getElementById('roomWaiting').style.display = 'block';
+  // No need to call displayPlayerDirections here as directions are not set yet
 });
 
 document.getElementById('invitePlayersButton').addEventListener('click', () => {
@@ -47,18 +75,32 @@ socket.on('playerJoined', (playerCount) => {
   currentPlayers = playerCount;
   console.log(`Player joined. Current players: ${currentPlayers}`);
   updateWaitingMessage();
-  // Removed client-side emission of startGame
+  
+  // Call displayPlayerDirections if playerIndex is already set
+  if (typeof playerIndex !== 'undefined') {
+    displayPlayerDirections();
+  }
 });
 
-socket.on('setTargetPlayerCount', (count) => {
-  targetPlayerCount = count;
-  console.log(`Target player count set to: ${targetPlayerCount}`);
-  updateWaitingMessage();
-});
+
 
 socket.on('setPlayerIndex', (index) => {
   playerIndex = index;
   console.log(`Player index set to: ${index}`);
+  // Call displayPlayerDirections if directions are already received
+  if (directions.length > 0) {
+    displayPlayerDirections();
+  }
+});
+
+
+socket.on('setTargetPlayerCount', (count) => {
+  targetPlayerCount = count;
+  console.log(`Target player count set to: ${targetPlayerCount}`);
+  // Call displayPlayerDirections if directions are already received
+  if (directions.length > 0) {
+    displayPlayerDirections();
+  }
 });
 
 socket.on('updateCountdown', (countdown) => {
@@ -67,10 +109,13 @@ socket.on('updateCountdown', (countdown) => {
   if (countdown > 0) {
     inviteButton.style.display = 'none';
     document.getElementById('waitingMessage').textContent = `Game starting in ${countdown}...`;
+      displayPlayerDirections();
+
   } else {
     document.getElementById('waitingMessage').textContent = `Game starting...`;
   }
 });
+
 
 socket.on('startGame', ({ directions: playerDirections, food: initialFood }) => {
   directions = playerDirections;
@@ -78,8 +123,21 @@ socket.on('startGame', ({ directions: playerDirections, food: initialFood }) => 
   console.log('Game started with directions: ', directions);
   document.getElementById('roomWaiting').style.display = 'none';
   document.getElementById('gameCanvas').style.display = 'block';
+  document.getElementById('playerDirections').style.display = 'none'; // Hide player directions
   setupGame();
 });
+
+
+socket.on('updateDirections', (updatedDirections) => {
+  directions = updatedDirections;
+  console.log('Updated directions received: ', directions);
+  // Call displayPlayerDirections if playerIndex is already set
+  if (typeof playerIndex !== 'undefined') {
+    displayPlayerDirections();
+  }
+});
+
+
 
 socket.on('updateDirection', (data) => {
   console.log(`Received direction update: ${data.direction}`);
@@ -91,6 +149,7 @@ socket.on('foodPositionUpdate', (newFood) => {
   console.log(`New food position received: ${newFood.x}, ${newFood.y}`);
   food = newFood;
 });
+
 
 function getUrlParameter(name) {
   name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
@@ -104,6 +163,7 @@ function joinRoom(roomId) {
   socket.emit('joinRoom', roomId);
   document.getElementById('roomCreation').style.display = 'none';
   document.getElementById('roomWaiting').style.display = 'block';
+  // No need to call displayPlayerDirections here as directions are not set yet
 }
 
 function updateWaitingMessage() {
@@ -128,7 +188,6 @@ function setupGame() {
   }
   gameLoopInterval = setInterval(gameLoop, 100);
 
-  displayPlayerDirections(); // Display player directions
   document.getElementById('controlButtons').style.display = 'block'; // Show control buttons
 }
 
@@ -260,9 +319,29 @@ function gameOver() {
   // Optionally, you could restart the game or redirect to the home screen
 }
 
+function getPlayerDirections(playerIndex, targetPlayerCount) {
+  if (targetPlayerCount === 1) {
+    return ['up', 'down', 'left', 'right'];
+  } else if (targetPlayerCount === 2) {
+    const directions = [['up', 'down'], ['left', 'right']];
+    return directions[playerIndex];
+  } else if (targetPlayerCount === 4) {
+    const directions = [['up'], ['right'], ['down'], ['left']];
+    return directions[playerIndex];
+  }
+  return [];
+}
+
 function displayPlayerDirections() {
   const playerDirectionsDiv = document.getElementById('playerDirections');
-  const directionsList = directions[playerIndex].join(', ');
-  playerDirectionsDiv.textContent = `You control: ${directionsList}`;
-  playerDirectionsDiv.style.display = 'block';
+  const playerDirections = getPlayerDirections(playerIndex, targetPlayerCount);
+  console.log('Displaying player directions:', playerDirections); // Log current directions for debugging
+  if (playerDirections && playerDirections.length > 0) {
+    const directionsList = playerDirections.join(', ');
+    playerDirectionsDiv.textContent = `You control: ${directionsList}`;
+    playerDirectionsDiv.style.display = 'block';
+  } else {
+    console.log('No directions available for the player index:', playerIndex);
+    playerDirectionsDiv.textContent = 'No directions available';
+  }
 }
