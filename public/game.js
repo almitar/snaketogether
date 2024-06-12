@@ -173,7 +173,7 @@ socket.on('foodPositionUpdate', (newFood) => {
 
 // Event listener for player disconnection
 socket.on('playerDisconnected', ({ username, remainingPlayers, targetPlayerCount }) => {
-  console.log(`Player ${username} disconnected. Remaining players: ${remainingPlayers}`);
+  console.log(`Received playerDisconnected event: Player ${username} disconnected. Remaining players: ${remainingPlayers}`);
   pauseGame();
   const playersNeeded = targetPlayerCount - remainingPlayers;
   showModal(`Player ${username} disconnected. Waiting for ${playersNeeded} player(s) to join.`, 30);
@@ -181,13 +181,17 @@ socket.on('playerDisconnected', ({ username, remainingPlayers, targetPlayerCount
 
 // Event listener for player reconnection
 socket.on('playerReconnected', ({ username, remainingPlayers, targetPlayerCount }) => {
-  console.log(`Player ${username} reconnected. Remaining players: ${remainingPlayers}`);
+  console.log(`Received playerReconnected event: Player ${username} reconnected. Remaining players: ${remainingPlayers}`);
   const playersNeeded = targetPlayerCount - remainingPlayers;
   updateModal(`Player ${username} reconnected. Waiting for ${playersNeeded} player(s) to join.`, 30);
   if (remainingPlayers === targetPlayerCount) {
     closeModal();
     resumeGame();
   }
+});
+
+socket.on('ping', () => {
+  socket.emit('pong');
 });
 
 // Pause game function

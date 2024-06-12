@@ -9,10 +9,12 @@ const io = socketIo(server);
 app.use(express.static('public'));
 
 let rooms = {};
+const HEARTBEAT_INTERVAL = 5000; // 5 seconds
+const TIMEOUT = 10000; // 10 seconds
 
 io.on('connection', (socket) => {
   console.log('A user connected: ', socket.id);
-  
+
   socket.on('createRoom', ({ roomId, targetPlayerCount, username }) => {
     console.log(`Creating room with ID: ${roomId} for ${targetPlayerCount} players`);
     rooms[roomId] = { players: [{ id: socket.id, username, index: 0 }], directions: assignDirections(targetPlayerCount), targetPlayerCount, food: generateFoodPosition([]) };
@@ -27,8 +29,10 @@ io.on('connection', (socket) => {
       console.log(`Single player room or target player count reached. Starting countdown...`);
       startGameCountdown(roomId);
     }
+
+    startHeartbeat(socket, roomId);
   });
-  
+
   socket.on('joinRoom', ({ roomId, username }) => {
     console.log(`Joining room with ID: ${roomId}`);
     if (rooms[roomId] && rooms[roomId].players.length < rooms[roomId].targetPlayerCount) {
@@ -48,6 +52,8 @@ io.on('connection', (socket) => {
         console.log(`Target number of players reached in room ${roomId}. Starting countdown...`);
         startGameCountdown(roomId);
       }
+
+      startHeartbeat(socket, roomId);
     } else {
       socket.emit('roomFull');
     }
@@ -95,6 +101,10 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('pong', () => {
+    socket.lastPong = Date.now();
+  });
+
   socket.on('playerReconnected', ({ roomId, username }) => {
     console.log(`Player ${username} connected to room ${roomId}`);
     const room = rooms[roomId];
@@ -111,9 +121,29 @@ io.on('connection', (socket) => {
       if (room.players.length === room.targetPlayerCount) {
         io.to(roomId).emit('resumeGame');
       }
+
+      startHeartbeat(socket, roomId);
     }
   });
 });
+
+function startHeartbeat(socket, roomId) {
+  socket.lastPong = Date.now();
+
+  const heartbeatInterval = setInterval(() => {
+    if (Date.now() - socket.lastPong > TIMEOUT) {
+      clearInterval(heartbeatInterval);
+      socket.disconnect(true);
+      console.log(`Heartbeat timeout for user ${socket.id}`);
+    } else {
+      socket.emit('ping');
+    }
+  }, HEARTBEAT_INTERVAL);
+
+  socket.on('disconnect', () => {
+    clearInterval(heartbeatInterval);
+  });
+}
 
 function startGameCountdown(roomId) {
   const room = rooms[roomId];
