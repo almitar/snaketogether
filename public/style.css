@@ -20,6 +20,7 @@ body {
     border: 6px solid #ececec;
   }
   
+
   input[type="text"], select {
     padding: 10px;
     margin: 10px;
@@ -47,6 +48,7 @@ body {
     font-family: 'Press Start 2P', cursive; 
     cursor: pointer;
     height: 40px;
+    width: fit-content;
   }
   
   button:disabled {
@@ -122,6 +124,10 @@ body {
   }
   
   .modal-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     background-color: #fefefe;
     margin: 15% auto;
     padding: 20px;
@@ -130,6 +136,10 @@ body {
     text-align: center;
   }
   
+  #modalMessage {
+    color: #555;
+  }
+
   #countdown {
     font-size: 24px;
     margin-top: 20px;

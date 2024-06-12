@@ -174,9 +174,7 @@ socket.on('foodPositionUpdate', (newFood) => {
 // Event listener for player disconnection
 socket.on('playerDisconnected', ({ username, remainingPlayers, targetPlayerCount }) => {
   console.log(`Received playerDisconnected event: Player ${username} disconnected. Remaining players: ${remainingPlayers}`);
-  pauseGame();
-  const playersNeeded = targetPlayerCount - remainingPlayers;
-  showModal(`Player ${username} disconnected. Waiting for ${playersNeeded} player(s) to join.`, 30);
+  gameOver(username); // Trigger game over with the disconnected player's username
 });
 
 // Event listener for player reconnection
@@ -243,10 +241,17 @@ function closeModal() {
 }
 
 // Game over function
-function gameOver() {
+function gameOver(disconnectedUsername) {
   clearInterval(gameLoopInterval);
-  alert('Game Over! Your score is ' + (snake.length - 1));
-  // Optionally, you could restart the game or redirect to the home screen
+  const score = snake.length - 3;
+  const message = disconnectedUsername 
+    ? `Game over.! Player ${disconnectedUsername} disconnected. Your score is ${score}.`
+    : `Game Over! Your score is ${score}.`;
+  document.getElementById('modalMessage').textContent = message;
+  document.getElementById('modal').style.display = 'block';
+  document.getElementById('playAgainButton').style.display = 'inline';
+  // Optionally, hide invite players button if you want
+  document.getElementById('invitePlayersModalButton').style.display = 'none';
 }
 
 function getUrlParameter(name) {
@@ -411,11 +416,6 @@ function gameLoop() {
   drawGame();
 }
 
-function gameOver() {
-  clearInterval(gameLoopInterval);
-  alert('Game Over! Your score is ' + (snake.length - 1));
-  // Optionally, you could restart the game or redirect to the home screen
-}
 
 function getPlayerDirections(playerIndex, targetPlayerCount) {
   if (targetPlayerCount === 1) {
