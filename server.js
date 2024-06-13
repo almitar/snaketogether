@@ -8,7 +8,7 @@ const io = socketIo(server);
 
 app.use(express.static('public'));
 
-let rooms = {};
+let rooms = new Map(); // Use Map for faster lookups
 const HEARTBEAT_INTERVAL = 5000; // 5 seconds
 const TIMEOUT = 10000; // 10 seconds
 
@@ -16,16 +16,20 @@ io.on('connection', (socket) => {
   console.log('A user connected: ', socket.id);
 
   socket.on('createRoom', ({ roomId, targetPlayerCount, username }) => {
+    if (!roomId || !targetPlayerCount || !username) {
+      console.error('Invalid room creation data');
+      return;
+    }
     console.log(`Creating room with ID: ${roomId} for ${targetPlayerCount} players`);
-    rooms[roomId] = { players: [{ id: socket.id, username, index: 0 }], directions: assignDirections(targetPlayerCount), targetPlayerCount, food: generateFoodPosition([]) };
+    rooms.set(roomId, { players: [{ id: socket.id, username, index: 0 }], directions: assignDirections(targetPlayerCount), targetPlayerCount, food: generateFoodPosition([]) });
     socket.join(roomId);
-    io.to(roomId).emit('playerJoined', rooms[roomId].players.length);
+    io.to(roomId).emit('playerJoined', rooms.get(roomId).players.length);
     socket.emit('setPlayerIndex', 0);
     socket.emit('setTargetPlayerCount', targetPlayerCount);
-    socket.emit('updateDirections', rooms[roomId].directions);
-    console.log(`Directions for room ${roomId}:`, rooms[roomId].directions);
+    socket.emit('updateDirections', rooms.get(roomId).directions);
+    console.log(`Directions for room ${roomId}:`, rooms.get(roomId).directions);
 
-    if (rooms[roomId].players.length === targetPlayerCount) {
+    if (rooms.get(roomId).players.length === targetPlayerCount) {
       console.log(`Single player room or target player count reached. Starting countdown...`);
       startGameCountdown(roomId);
     }
@@ -34,21 +38,26 @@ io.on('connection', (socket) => {
   });
 
   socket.on('joinRoom', ({ roomId, username }) => {
+    if (!roomId || !username) {
+      console.error('Invalid room join data');
+      return;
+    }
     console.log(`Joining room with ID: ${roomId}`);
-    if (rooms[roomId] && rooms[roomId].players.length < rooms[roomId].targetPlayerCount) {
-      const playerIndex = rooms[roomId].players.length;
-      rooms[roomId].players.push({ id: socket.id, username, index: playerIndex });
+    const room = rooms.get(roomId);
+    if (room && room.players.length < room.targetPlayerCount) {
+      const playerIndex = room.players.length;
+      room.players.push({ id: socket.id, username, index: playerIndex });
       socket.join(roomId);
-      io.to(roomId).emit('playerJoined', rooms[roomId].players.length);
+      io.to(roomId).emit('playerJoined', room.players.length);
       socket.emit('setPlayerIndex', playerIndex);
-      socket.emit('setTargetPlayerCount', rooms[roomId].targetPlayerCount);
+      socket.emit('setTargetPlayerCount', room.targetPlayerCount);
 
       setTimeout(() => {
-        socket.emit('updateDirections', rooms[roomId].directions);
-        console.log(`Directions for room ${roomId}:`, rooms[roomId].directions);
+        socket.emit('updateDirections', room.directions);
+        console.log(`Directions for room ${roomId}:`, room.directions);
       }, 100);
 
-      if (rooms[roomId].players.length === rooms[roomId].targetPlayerCount) {
+      if (room.players.length === room.targetPlayerCount) {
         console.log(`Target number of players reached in room ${roomId}. Starting countdown...`);
         startGameCountdown(roomId);
       }
@@ -60,8 +69,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('directionChange', (data) => {
+    if (!data || !data.roomId || !data.direction) {
+      console.error('Invalid direction change data');
+      return;
+    }
     console.log(`Direction change received in room ${data.roomId}: ${data.direction}`);
-    const room = rooms[data.roomId];
+    const room = rooms.get(data.roomId);
     if (room) {
       room.currentDirection = data.direction;
       io.to(data.roomId).emit('updateDirection', { direction: data.direction });
@@ -71,8 +84,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('foodEaten', (data) => {
+    if (!data || !data.roomId || !Array.isArray(data.snake)) {
+      console.error('Invalid food eaten data');
+      return;
+    }
     console.log(`Food eaten in room ${data.roomId}`);
-    const room = rooms[data.roomId];
+    const room = rooms.get(data.roomId);
     if (room) {
       room.food = generateFoodPosition(data.snake);
       console.log(`Generated new food position: ${room.food.x}, ${room.food.y}`);
@@ -81,7 +98,11 @@ io.on('connection', (socket) => {
   });
 
   socket.on('updateSnake', ({ roomId, snake }) => {
-    const room = rooms[roomId];
+    if (!roomId || !Array.isArray(snake)) {
+      console.error('Invalid snake update data');
+      return;
+    }
+    const room = rooms.get(roomId);
     if (room) {
       room.snake = snake;
       io.to(roomId).emit('updateSnake', snake);
@@ -90,13 +111,12 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('A user disconnected: ', socket.id);
-    for (let roomId in rooms) {
-      let room = rooms[roomId];
+    rooms.forEach((room, roomId) => {
       const disconnectedPlayer = room.players.find(player => player.id === socket.id);
       if (disconnectedPlayer) {
         room.players = room.players.filter(player => player.id !== socket.id);
         if (room.players.length === 0) {
-          delete rooms[roomId];
+          rooms.delete(roomId);
         } else {
           io.to(roomId).emit('playerDisconnected', {
             username: disconnectedPlayer.username,
@@ -106,7 +126,7 @@ io.on('connection', (socket) => {
           console.log(`Player count after disconnect for room ${roomId}: ${room.players.length}`);
         }
       }
-    }
+    });
   });
 
   socket.on('pong', () => {
@@ -114,8 +134,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('playerReconnected', ({ roomId, username }) => {
+    if (!roomId || !username) {
+      console.error('Invalid player reconnection data');
+      return;
+    }
     console.log(`Player ${username} connected to room ${roomId}`);
-    const room = rooms[roomId];
+    const room = rooms.get(roomId);
     if (room) {
       const playerIndex = room.players.length;
       room.players.push({ id: socket.id, username, index: playerIndex });
@@ -154,7 +178,7 @@ function startHeartbeat(socket, roomId) {
 }
 
 function startGameCountdown(roomId) {
-  const room = rooms[roomId];
+  const room = rooms.get(roomId);
   let countdown = 3;
   io.to(roomId).emit('updateCountdown', countdown);
   console.log(`Countdown started for room ${roomId} with countdown ${countdown}`);
