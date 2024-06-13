@@ -7,7 +7,7 @@ let username = "";
 let snake = [];
 let food;
 let lastRenderTime = 0;
-const snakeSpeed = 100; // Snake speed in milliseconds
+const snakeSpeed = 80; // Snake speed in milliseconds
 const SERVER_UPDATE_INTERVAL = 100; // 10 updates per second
 let lastServerUpdateTime = 0;
 let currentDirection = 'right';
