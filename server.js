@@ -11,6 +11,7 @@ app.use(express.static('public'));
 let rooms = new Map(); // Use Map for faster lookups
 const HEARTBEAT_INTERVAL = 5000; // 5 seconds
 const TIMEOUT = 10000; // 10 seconds
+const UPDATE_INTERVAL = 100; // 10 updates per second
 
 io.on('connection', (socket) => {
   console.log('A user connected: ', socket.id);
@@ -21,7 +22,7 @@ io.on('connection', (socket) => {
       return;
     }
     console.log(`Creating room with ID: ${roomId} for ${targetPlayerCount} players`);
-    rooms.set(roomId, { players: [{ id: socket.id, username, index: 0 }], directions: assignDirections(targetPlayerCount), targetPlayerCount, food: generateFoodPosition([]) });
+    rooms.set(roomId, { players: [{ id: socket.id, username, index: 0 }], directions: assignDirections(targetPlayerCount), targetPlayerCount, food: generateFoodPosition([]), currentDirection: 'right' });
     socket.join(roomId);
     io.to(roomId).emit('playerJoined', rooms.get(roomId).players.length);
     socket.emit('setPlayerIndex', 0);
@@ -196,9 +197,43 @@ function startGameCountdown(roomId) {
         { x: 8, y: 10 }
       ];
       room.snake = initialSnake;
+      room.gameInterval = setInterval(() => updateGameState(roomId), UPDATE_INTERVAL);
       io.to(roomId).emit('startGame', { directions: room.directions, food: room.food, snake: initialSnake });
     }
   }, 1000);
+}
+
+function updateGameState(roomId) {
+  const room = rooms.get(roomId);
+  if (!room) return;
+
+  const head = { ...room.snake[0] };
+  if (room.currentDirection === 'right') head.x += 1;
+  if (room.currentDirection === 'left') head.x -= 1;
+  if (room.currentDirection === 'up') head.y -= 1;
+  if (room.currentDirection === 'down') head.y += 1;
+  if (head.x >= 20) head.x = 0;
+  if (head.x < 0) head.x = 19;
+  if (head.y >= 20) head.y = 0;
+  if (head.y < 0) head.y = 19;
+
+  for (let i = 1; i < room.snake.length; i++) {
+    if (room.snake[i].x === head.x && room.snake[i].y === head.y) {
+      gameOver(roomId);
+      return;
+    }
+  }
+
+  if (head.x === room.food.x && head.y === room.food.y) {
+    room.snake.unshift(head);
+    room.food = generateFoodPosition(room.snake);
+    io.to(roomId).emit('foodPositionUpdate', room.food);
+  } else {
+    room.snake.unshift(head);
+    room.snake.pop();
+  }
+
+  io.to(roomId).emit('updateSnake', room.snake);
 }
 
 function generateFoodPosition(snake) {

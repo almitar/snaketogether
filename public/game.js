@@ -6,13 +6,14 @@ let roomId = getUrlParameter('roomId') || "";
 let username = "";
 let snake = [];
 let food;
-let gameLoopInterval;
+let lastRenderTime = 0;
+const snakeSpeed = 100; // Snake speed in milliseconds
+const SERVER_UPDATE_INTERVAL = 100; // 10 updates per second
+let lastServerUpdateTime = 0;
 let currentDirection = 'right';
 let directionChanged = false;
 let playerIndex = 0;
-let lastUpdateTime = 0;
-const snakeSpeed = 80; // Snake speed in milliseconds
-
+let gameLoopInterval;
 
 document.addEventListener('DOMContentLoaded', (event) => {
   if (roomId) {
@@ -170,7 +171,7 @@ function pauseGame() {
 }
 
 function resumeGame() {
-  gameLoopInterval = setInterval(gameLoop, 100);
+  gameLoopInterval = setInterval(() => updateGame(), SERVER_UPDATE_INTERVAL);
 }
 
 function showModal(message, countdown) {
@@ -237,16 +238,11 @@ function updateWaitingMessage() {
 }
 
 function setupGame() {
-  snake = [
-    { x: 10, y: 10 },
-    { x: 9, y: 10 },
-    { x: 8, y: 10 }
-  ];
-  currentDirection = 'right';
   document.addEventListener('keydown', handleKeydown);
   if (gameLoopInterval) {
     clearInterval(gameLoopInterval);
   }
+  gameLoopInterval = setInterval(() => updateGame(), SERVER_UPDATE_INTERVAL);
   requestAnimationFrame(gameLoop); // Use requestAnimationFrame for the game loop
   document.getElementById('controlButtons').style.display = 'block';
 }
@@ -317,7 +313,10 @@ function updateGame() {
     snake.pop();
   }
   directionChanged = false;
-  socket.emit('updateSnake', { roomId, snake });
+  if (Date.now() - lastServerUpdateTime > SERVER_UPDATE_INTERVAL) {
+    socket.emit('updateSnake', { roomId, snake });
+    lastServerUpdateTime = Date.now();
+  }
 }
 
 function drawGame() {
@@ -336,12 +335,11 @@ function drawGame() {
 }
 
 function gameLoop(timestamp) {
-  if (!lastUpdateTime) lastUpdateTime = timestamp;
-  const deltaTime = timestamp - lastUpdateTime;
+  const deltaTime = timestamp - lastRenderTime;
 
   if (deltaTime > snakeSpeed) {
     updateGame();
-    lastUpdateTime = timestamp;
+    lastRenderTime = timestamp;
   }
 
   drawGame();
