@@ -6,7 +6,7 @@ body {
     margin: 0;
     background-color: #000;
     color: #ececec;
-    font-family: 'Press Start 2P', cursive; /* Retro font */
+    font-family: 'Press Start 2P', cursive; 
   }
   
   #gameContainer {

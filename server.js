@@ -24,7 +24,7 @@ io.on('connection', (socket) => {
     socket.emit('setTargetPlayerCount', targetPlayerCount);
     socket.emit('updateDirections', rooms[roomId].directions);
     console.log(`Directions for room ${roomId}:`, rooms[roomId].directions);
-  
+
     if (rooms[roomId].players.length === targetPlayerCount) {
       console.log(`Single player room or target player count reached. Starting countdown...`);
       startGameCountdown(roomId);
@@ -42,12 +42,12 @@ io.on('connection', (socket) => {
       io.to(roomId).emit('playerJoined', rooms[roomId].players.length);
       socket.emit('setPlayerIndex', playerIndex);
       socket.emit('setTargetPlayerCount', rooms[roomId].targetPlayerCount);
-      
+
       setTimeout(() => {
         socket.emit('updateDirections', rooms[roomId].directions);
         console.log(`Directions for room ${roomId}:`, rooms[roomId].directions);
       }, 100);
-      
+
       if (rooms[roomId].players.length === rooms[roomId].targetPlayerCount) {
         console.log(`Target number of players reached in room ${roomId}. Starting countdown...`);
         startGameCountdown(roomId);
@@ -58,7 +58,7 @@ io.on('connection', (socket) => {
       socket.emit('roomFull');
     }
   });
-  
+
   socket.on('directionChange', (data) => {
     console.log(`Direction change received in room ${data.roomId}: ${data.direction}`);
     const room = rooms[data.roomId];
@@ -79,7 +79,15 @@ io.on('connection', (socket) => {
       io.to(data.roomId).emit('foodPositionUpdate', room.food);
     }
   });
-  
+
+  socket.on('updateSnake', ({ roomId, snake }) => {
+    const room = rooms[roomId];
+    if (room) {
+      room.snake = snake;
+      io.to(roomId).emit('updateSnake', snake);
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('A user disconnected: ', socket.id);
     for (let roomId in rooms) {
@@ -158,7 +166,13 @@ function startGameCountdown(roomId) {
 
     if (countdown === 0) {
       clearInterval(countdownInterval);
-      io.to(roomId).emit('startGame', { directions: room.directions, food: room.food });
+      const initialSnake = [
+        { x: 10, y: 10 },
+        { x: 9, y: 10 },
+        { x: 8, y: 10 }
+      ];
+      room.snake = initialSnake;
+      io.to(roomId).emit('startGame', { directions: room.directions, food: room.food, snake: initialSnake });
     }
   }, 1000);
 }

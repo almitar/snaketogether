@@ -25,18 +25,17 @@ document.addEventListener('DOMContentLoaded', (event) => {
 });
 
 document.getElementById('createRoomButton').addEventListener('click', () => {
-  const roomIdInput = document.getElementById('roomIdInput').value;
   username = document.getElementById('usernameInputCreate').value;
   targetPlayerCount = parseInt(document.getElementById('playerCount').value);
 
-  if (!username || !roomIdInput) {
-    alert('Please enter both a username and room ID.');
+  if (!username) {
+    alert('Please enter a username.');
     return;
   }
 
   // Generate a unique identifier for the room
   const uniqueId = Date.now();
-  roomId = `${uniqueId}-${roomIdInput}`;
+  roomId = `${uniqueId}`;
 
   console.log(`Creating room with ID: ${roomId} for ${targetPlayerCount} players`);
   socket.emit('createRoom', { roomId, targetPlayerCount, username });
@@ -68,7 +67,6 @@ document.getElementById('joinRoomButton').addEventListener('click', () => {
 });
 
 document.getElementById('invitePlayersButton').addEventListener('click', () => {
-  const roomId = new URLSearchParams(window.location.search).get('roomId'); // Extract roomId from URL
   const inviteLink = `${window.location.origin}?roomId=${roomId}`;
 
   console.log('Invite link:', inviteLink); // Debugging log
@@ -88,7 +86,6 @@ document.getElementById('invitePlayersButton').addEventListener('click', () => {
 });
 
 document.getElementById('invitePlayersModalButton').addEventListener('click', () => {
-  const roomId = new URLSearchParams(window.location.search).get('roomId'); // Extract roomId from URL
   const inviteLink = `${window.location.origin}?roomId=${roomId}`;
 
   navigator.clipboard.writeText(inviteLink).then(() => {
@@ -141,15 +138,17 @@ socket.on('updateCountdown', (countdown) => {
   }
 });
 
-socket.on('startGame', ({ directions: playerDirections, food: initialFood }) => {
+socket.on('startGame', ({ directions: playerDirections, food: initialFood, snake: initialSnake }) => {
   directions = playerDirections;
   food = initialFood;
+  snake = initialSnake; // Initialize the snake with the initial state from the server
   console.log('Game started with directions: ', directions);
   document.getElementById('roomWaiting').style.display = 'none';
   document.getElementById('gameCanvas').style.display = 'block';
   document.getElementById('playerDirections').style.display = 'none'; // Hide player directions
   setupGame();
 });
+
 
 socket.on('updateDirections', (updatedDirections) => {
   directions = updatedDirections;
@@ -245,7 +244,7 @@ function gameOver(disconnectedUsername) {
   clearInterval(gameLoopInterval);
   const score = snake.length - 3;
   const message = disconnectedUsername 
-    ? `Game over.! Player ${disconnectedUsername} disconnected. Your score is ${score}.`
+    ? `Game over! Player ${disconnectedUsername} disconnected. Your score is ${score}.`
     : `Game Over! Your score is ${score}.`;
   document.getElementById('modalMessage').textContent = message;
   document.getElementById('modal').style.display = 'block';
@@ -352,6 +351,11 @@ function flashButton(direction) {
   }, 200);
 }
 
+socket.on('updateSnake', (updatedSnake) => {
+  snake = updatedSnake;
+});
+
+
 function updateGame() {
   if (!Array.isArray(snake) || snake.length === 0) {
     console.error("Snake is not initialized properly or is empty.");
@@ -389,7 +393,11 @@ function updateGame() {
   }
 
   directionChanged = false;
+  
+  // Emit the snake's position to the server
+  socket.emit('updateSnake', { roomId, snake });
 }
+
 
 function drawGame() {
   const canvas = document.getElementById('gameCanvas');
